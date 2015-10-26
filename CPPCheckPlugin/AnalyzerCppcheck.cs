@@ -78,8 +78,8 @@ namespace VSPackage.CPPCheckPlugin
 				unitedSuppressionsInfo.UnionWith(readSuppressions(SuppressionStorage.Project, path, filesToAnalyze[0].ProjectName));
 			}
 
-			if (!multipleProjects)
-				cppheckargs += (" --relative-paths=\"" + filesToAnalyze[0].BaseProjectPath + "\"");
+			//if (!multipleProjects)
+			//	cppheckargs += (" --relative-paths=\"" + filesToAnalyze[0].BaseProjectPath + "\"");
 			cppheckargs += (" -j " + _numCores.ToString());
 			if (Properties.Settings.Default.InconclusiveChecksEnabled)
 				cppheckargs += " --inconclusive ";
@@ -90,36 +90,6 @@ namespace VSPackage.CPPCheckPlugin
 				if (!String.IsNullOrWhiteSpace(suppression))
 					cppheckargs += (" --suppress=" + suppression);
 			}
-
-			// We only add include paths once, and then specify a set of files to check
-			HashSet<string> includePaths = new HashSet<string>();
-			foreach (var file in filesToAnalyze)
-			{
-				if (!matchMasksList(file.FilePath, unitedSuppressionsInfo.SkippedFilesMask))
-					includePaths.UnionWith(file.IncludePaths);
-			}
-
-			includePaths.Add(filesToAnalyze[0].BaseProjectPath); // Fix for #60
-
-			foreach (string path in includePaths)
-			{
-				if (!matchMasksList(path, unitedSuppressionsInfo.SkippedIncludesMask))
-				{
-					String includeArgument = " -I\"" + path + "\"";
-					cppheckargs = cppheckargs + " " + includeArgument;
-				}
-			}
-
-			using (StreamWriter tempFile = new StreamWriter(tempFileName))
-			{
-				foreach (SourceFile file in filesToAnalyze)
-				{
-					if (!matchMasksList(file.FileName, unitedSuppressionsInfo.SkippedFilesMask))
-						tempFile.WriteLine(file.FilePath);
-				}
-			}
-
-			cppheckargs += " --file-list=\"" + tempFileName + "\"";
 
 			if ((analysisOnSavedFile && Properties.Settings.Default.FileOnlyCheckCurrentConfig) ||
 				(!analysisOnSavedFile && Properties.Settings.Default.ProjectOnlyCheckCurrentConfig)) // Only checking current macros configuration (for speed)
@@ -200,6 +170,26 @@ namespace VSPackage.CPPCheckPlugin
 			}
 			else if (!cppheckargs.Contains("--force"))
 				cppheckargs += " --force";
+
+
+			// We only add include paths once, and then specify a set of files to check
+			HashSet<string> includePaths = new HashSet<string>();
+			//foreach (var file in filesToAnalyze)
+			//{
+			//	if (!matchMasksList(file.FilePath, unitedSuppressionsInfo.SkippedFilesMask))
+			//		includePaths.UnionWith(file.IncludePaths);
+			//}
+
+			includePaths.Add(filesToAnalyze[0].BaseProjectPath); // Fix for #60
+
+			foreach (string path in includePaths)
+			{
+				if (!matchMasksList(path, unitedSuppressionsInfo.SkippedIncludesMask))
+				{
+					String includeArgument = " \"" + path + "\"";
+					cppheckargs = cppheckargs + " " + includeArgument;
+				}
+			}
 			
 			return cppheckargs;
 		}
