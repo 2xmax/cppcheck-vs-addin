@@ -70,6 +70,7 @@ namespace VSPackage.CPPCheckPlugin
 		}
 
 		public abstract void analyze(List<ConfiguredFiles> configuredFiles, OutputWindowPane outputPane, bool analysisOnSavedFile);
+        public abstract void analyze(string dir, OutputWindowPane outputPane);
 
 		public abstract void suppressProblem(Problem p, SuppressionScope scope);
 

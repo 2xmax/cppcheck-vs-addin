@@ -8,6 +8,7 @@ using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Shell;
 using EnvDTE;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using System.Threading.Tasks;
@@ -158,6 +159,11 @@ namespace VSPackage.CPPCheckPlugin
 				CommandID menuCommandID = new CommandID(GuidList.guidCPPCheckPluginCmdSet, (int)PkgCmdIDList.cmdidCheckProjectCppcheck);
 				MenuCommand menuItem = new MenuCommand(onCheckCurrentProjectRequested, menuCommandID);
 				mcs.AddCommand( menuItem );
+
+				CommandID solutionMenuCommandID = new CommandID(GuidList.guidCPPCheckPluginCmdSet, (int)PkgCmdIDList.cmdidCheckSolutionCppcheck);
+				MenuCommand solutionMenuItem = new MenuCommand(onCheckSolution, solutionMenuCommandID);
+				mcs.AddCommand(solutionMenuItem);
+
 				// Create the command for the settings window
 				CommandID settingsWndCmdId = new CommandID(GuidList.guidCPPCheckPluginCmdSet, (int)PkgCmdIDList.cmdidSettings);
 				MenuCommand menuSettings = new MenuCommand(onSettingsWindowRequested, settingsWndCmdId);
@@ -209,6 +215,12 @@ namespace VSPackage.CPPCheckPlugin
 		private void onCheckAllProjectsRequested(object sender, EventArgs e)
 		{
 			checkAllActiveProjects();
+		}
+
+		private void onCheckSolution(object sender, EventArgs e)
+		{
+			var solutionFolder = Directory.GetParent(_dte.Solution.FullName).FullName;
+			runAnalysis(solutionFolder, _outputPane);
 		}
 
 		private void onSettingsWindowRequested(object sender, EventArgs e)
@@ -397,6 +409,16 @@ namespace VSPackage.CPPCheckPlugin
 			configuredFiles.Files = new List<SourceFile> {file};
 			configuredFiles.Configuration = currentConfig;
 			runAnalysis(new List<ConfiguredFiles> {configuredFiles}, outputPane, true);
+		}
+
+		private void runAnalysis(string dir, OutputWindowPane outputPane)
+		{
+			outputPane.Clear();
+
+			foreach (var analyzer in _analyzers)
+			{
+				analyzer.analyze(dir, outputPane);
+			}
 		}
 
 		private void runAnalysis(List<ConfiguredFiles> configuredFiles, OutputWindowPane outputPane, bool analysisOnSavedFile)

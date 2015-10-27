@@ -42,7 +42,43 @@ namespace VSPackage.CPPCheckPlugin
 		{
 			cleanupTempFiles();
 		}
-		
+
+		private string getCPPCheckArgs(string rootDir)
+		{
+			String cppheckargs = Properties.Settings.Default.DefaultArguments;
+
+			if (Properties.Settings.Default.SeveritiesString.Length != 0)
+				cppheckargs += " --enable=" + Properties.Settings.Default.SeveritiesString;
+
+			HashSet<string> suppressions = new HashSet<string>(Properties.Settings.Default.SuppressionsString.Split(','));
+			suppressions.Add("unmatchedSuppression");
+
+			SuppressionsInfo unitedSuppressionsInfo = readSuppressions(SuppressionStorage.Global);
+			unitedSuppressionsInfo.UnionWith(readSuppressions(SuppressionStorage.Solution));
+
+			_projectBasePath = rootDir;
+			cppheckargs += (" -j " + _numCores);
+			if (Properties.Settings.Default.InconclusiveChecksEnabled)
+				cppheckargs += " --inconclusive ";
+
+			suppressions.UnionWith(unitedSuppressionsInfo.SuppressionLines);
+			foreach (string suppression in suppressions)
+			{
+				if (!String.IsNullOrWhiteSpace(suppression))
+					cppheckargs += (" --suppress=" + suppression);
+			}
+			if (!cppheckargs.Contains("--force"))
+				cppheckargs += " --force";
+
+			if (!matchMasksList(rootDir, unitedSuppressionsInfo.SkippedIncludesMask))
+			{
+				String includeArgument = " \"" + rootDir + "\"";
+				cppheckargs = cppheckargs + " " + includeArgument;
+			}
+
+			return cppheckargs;
+		}
+
 		private string getCPPCheckArgs(ConfiguredFiles configuredFiles, bool analysisOnSavedFile, bool multipleProjects, string tempFileName)
 		{
 			Debug.Assert(_numCores > 0);
@@ -171,27 +207,26 @@ namespace VSPackage.CPPCheckPlugin
 			else if (!cppheckargs.Contains("--force"))
 				cppheckargs += " --force";
 
+			string rootDir = filesToAnalyze[0].BaseProjectPath;
 
-			// We only add include paths once, and then specify a set of files to check
-			HashSet<string> includePaths = new HashSet<string>();
-			//foreach (var file in filesToAnalyze)
-			//{
-			//	if (!matchMasksList(file.FilePath, unitedSuppressionsInfo.SkippedFilesMask))
-			//		includePaths.UnionWith(file.IncludePaths);
-			//}
 
-			includePaths.Add(filesToAnalyze[0].BaseProjectPath); // Fix for #60
-
-			foreach (string path in includePaths)
+			if (!matchMasksList(rootDir, unitedSuppressionsInfo.SkippedIncludesMask))
 			{
-				if (!matchMasksList(path, unitedSuppressionsInfo.SkippedIncludesMask))
-				{
-					String includeArgument = " \"" + path + "\"";
-					cppheckargs = cppheckargs + " " + includeArgument;
-				}
+				String includeArgument = " \"" + rootDir + "\"";
+				cppheckargs = cppheckargs + " " + includeArgument;
 			}
 			
 			return cppheckargs;
+		}
+
+		public override void analyze(string dir, OutputWindowPane outputWindow)
+		{
+			List<string> cppheckargs = new List<string>
+			{
+				getCPPCheckArgs(dir)
+			};
+
+			analyze(cppheckargs, outputWindow);
 		}
 
 		public override void analyze(List<ConfiguredFiles> allConfiguredFiles, OutputWindowPane outputWindow, bool analysisOnSavedFile)
@@ -203,6 +238,10 @@ namespace VSPackage.CPPCheckPlugin
 			foreach (var configuredFiles in allConfiguredFiles)
 				cppheckargs.Add(getCPPCheckArgs(configuredFiles, analysisOnSavedFile, allConfiguredFiles.Count > 1, createNewTempFileName()));
 
+			analyze(cppheckargs, outputWindow);
+		}
+
+		private void analyze(List<string> cppheckargs, OutputWindowPane outputWindow){
 			string analyzerPath = Properties.Settings.Default.CPPcheckPath;
 			while (!File.Exists(analyzerPath))
 			{
