@@ -109,6 +109,7 @@ namespace VSPackage.CPPCheckPlugin.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
         public bool CheckSavedFiles {
             get {
                 return ((bool)(this["CheckSavedFiles"]));

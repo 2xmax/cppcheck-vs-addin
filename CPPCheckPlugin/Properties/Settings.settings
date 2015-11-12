@@ -24,7 +24,7 @@
       <Value Profile="(Default)">unmatchedSuppression</Value>
     </Setting>
     <Setting Name="CheckSavedFiles" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)" />
+      <Value Profile="(Default)">False</Value>
     </Setting>
   </Settings>
 </SettingsFile>
