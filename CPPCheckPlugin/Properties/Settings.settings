@@ -3,7 +3,7 @@
   <Profiles />
   <Settings>
     <Setting Name="CPPcheckPath" Type="System.String" Scope="User">
-      <Value Profile="(Default)">c:\Program Files (x86)\Cppcheck\cppcheck.exe</Value>
+      <Value Profile="(Default)">c:\Program Files\Cppcheck\cppcheck.exe</Value>
     </Setting>
     <Setting Name="InconclusiveChecksEnabled" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
